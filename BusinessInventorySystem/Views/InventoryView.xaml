@@ -1,0 +1,252 @@
+<UserControl x:Class="BusinessInventorySystem.Views.InventoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="660" d:DesignWidth="930">
+    <UserControl.Resources>
+        <!-- Row context menus; DataContext is the right-clicked row's item -->
+        <ContextMenu x:Key="ItemRowMenu">
+            <MenuItem Header="Edit Item…" Click="EditItem_Click"/>
+            <MenuItem Header="Adjust Stock…" Click="AdjustStockRow_Click"/>
+            <Separator/>
+            <MenuItem Header="Remove Item" Click="RemoveItem_Click"/>
+        </ContextMenu>
+        <ContextMenu x:Key="MovementRowMenu">
+            <MenuItem Header="Revert Movement…" Click="RevertMovement_Click"/>
+        </ContextMenu>
+
+        <!-- Stock status pill -->
+        <DataTemplate x:Key="StockStatusCell">
+            <Border x:Name="Pill" Style="{StaticResource Badge}" Background="{StaticResource SuccessLightBrush}">
+                <TextBlock x:Name="PillText" Style="{StaticResource BadgeText}" Text="{Binding StockStatus}"
+                           Foreground="{StaticResource SuccessBrush}"/>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding StockStatus}" Value="Low Stock">
+                    <Setter TargetName="Pill" Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                    <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StockStatus}" Value="Out of Stock">
+                    <Setter TargetName="Pill" Property="Background" Value="{StaticResource DangerLightBrush}"/>
+                    <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Movement type pill -->
+        <DataTemplate x:Key="MovementTypeCell">
+            <Border x:Name="Pill" Style="{StaticResource Badge}" Background="{StaticResource NeutralLightBrush}">
+                <TextBlock x:Name="PillText" Style="{StaticResource BadgeText}" Text="{Binding Type}"
+                           Foreground="{StaticResource NeutralBrush}"/>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Type}" Value="Received">
+                    <Setter TargetName="Pill" Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                    <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Type}" Value="Sold">
+                    <Setter TargetName="Pill" Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                    <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Type}" Value="Returned">
+                    <Setter TargetName="Pill" Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                    <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header: title + actions -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Inventory" Style="{StaticResource PageTitle}"/>
+                <TextBlock x:Name="SummaryText" Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                           Text="0 items"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Adjust Stock" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"
+                        Click="AdjustStock_Click"/>
+                <Button Content="+  Add Item" Style="{StaticResource PrimaryButton}" Click="AddItem_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Items / Activity Log tabs -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+            <TabItem Header="Items" Style="{StaticResource FlatTabItem}">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="340"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Item list -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,16,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBox x:Name="SearchBox" Style="{StaticResource InputBox}" Margin="12,12,12,8"
+                                     TextChanged="SearchBox_TextChanged"/>
+                            <DataGrid x:Name="ItemsGrid" Grid.Row="1" Style="{StaticResource AppDataGrid}"
+                                      SelectionChanged="ItemsGrid_SelectionChanged">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="ContextMenu" Value="{StaticResource ItemRowMenu}"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="SKU" Binding="{Binding Sku}" Width="90"/>
+                                    <DataGridTextColumn Header="NAME" Binding="{Binding Name}" Width="*"/>
+                                    <DataGridTextColumn Header="CATEGORY" Binding="{Binding Category}" Width="110"/>
+                                    <DataGridTextColumn Header="QTY" Binding="{Binding Quantity}" Width="60"/>
+                                    <DataGridTextColumn Header="LOCATION" Binding="{Binding Location}" Width="120"/>
+                                    <DataGridTextColumn Header="PRICE" Binding="{Binding UnitPrice, StringFormat=C}" Width="80"/>
+                                    <DataGridTemplateColumn Header="STATUS" Width="110"
+                                                            CellTemplate="{StaticResource StockStatusCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Detail pane: selected item + its history -->
+                    <Border Grid.Column="1" Style="{StaticResource Card}">
+                        <Grid>
+                            <TextBlock x:Name="NoSelectionText" Text="Select an item to see its details and history."
+                                       Style="{StaticResource MutedText}" TextWrapping="Wrap" TextAlignment="Center"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30"/>
+                            <Grid x:Name="DetailPanel" Visibility="Collapsed" Margin="16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontSize="17" FontWeight="Bold"
+                                               Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                    <TextBlock Style="{StaticResource MutedText}" Margin="0,3,0,0">
+                                        <Run Text="{Binding Sku}"/> · <Run Text="{Binding Category}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <!-- Key figures -->
+                                <UniformGrid Grid.Row="1" Columns="2" Margin="0,14,0,0">
+                                    <StackPanel Margin="0,0,8,10">
+                                        <TextBlock Text="ON HAND" Style="{StaticResource MutedText}" FontSize="10"/>
+                                        <TextBlock Text="{Binding Quantity}" FontSize="20" FontWeight="Bold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,0,10">
+                                        <TextBlock Text="UNIT PRICE" Style="{StaticResource MutedText}" FontSize="10"/>
+                                        <TextBlock Text="{Binding UnitPrice, StringFormat=C}" FontSize="20" FontWeight="Bold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="LOCATION" Style="{StaticResource MutedText}" FontSize="10"/>
+                                        <TextBlock Text="{Binding Location}" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="REORDER AT" Style="{StaticResource MutedText}" FontSize="10"/>
+                                        <TextBlock Text="{Binding ReorderLevel}" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </UniformGrid>
+
+                                <Border Grid.Row="2" Height="1" Background="{StaticResource BorderBrush}" Margin="0,12"/>
+
+                                <!-- Per-item history -->
+                                <Grid Grid.Row="3">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="History" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl x:Name="ItemHistoryList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                                                            Padding="0,8" Background="Transparent"
+                                                            ContextMenu="{StaticResource MovementRowMenu}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <ContentPresenter Content="{Binding}"
+                                                                                  ContentTemplate="{StaticResource MovementTypeCell}"/>
+                                                                <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                                                                           Text="{Binding Timestamp, StringFormat='MMM d, yyyy h:mm tt'}"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                                                <TextBlock Text="{Binding QuantityChangeDisplay}" FontSize="14"
+                                                                           FontWeight="Bold" TextAlignment="Right"
+                                                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                                <TextBlock Style="{StaticResource MutedText}" TextAlignment="Right"
+                                                                           Text="{Binding QuantityAfter, StringFormat='now {0}'}"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Full activity log across all items -->
+            <TabItem Header="Activity Log" Style="{StaticResource FlatTabItem}">
+                <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" Margin="12,12,12,8">
+                            <ComboBox x:Name="TypeFilter" Width="150" VerticalContentAlignment="Center"
+                                      SelectionChanged="TypeFilter_SelectionChanged"/>
+                        </StackPanel>
+                        <DataGrid x:Name="HistoryGrid" Grid.Row="1" Style="{StaticResource AppDataGrid}">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="ContextMenu" Value="{StaticResource MovementRowMenu}"/>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="DATE" Width="160"
+                                                    Binding="{Binding Timestamp, StringFormat='MMM d, yyyy h:mm tt'}"/>
+                                <DataGridTextColumn Header="SKU" Binding="{Binding Sku}" Width="90"/>
+                                <DataGridTextColumn Header="ITEM" Binding="{Binding ItemName}" Width="*"/>
+                                <DataGridTemplateColumn Header="TYPE" Width="110"
+                                                        CellTemplate="{StaticResource MovementTypeCell}"/>
+                                <DataGridTextColumn Header="CHANGE" Binding="{Binding QuantityChangeDisplay}" Width="80"/>
+                                <DataGridTextColumn Header="QTY AFTER" Binding="{Binding QuantityAfter}" Width="90"/>
+                                <DataGridTextColumn Header="USER" Binding="{Binding User}" Width="100"/>
+                                <DataGridTextColumn Header="NOTE" Binding="{Binding Note}" Width="180"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
